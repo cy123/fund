@@ -78,24 +78,18 @@
   NP.enableBoundaryChecking(false)
   export default {
     onLoad() {
+      if (uni.getStorageSync('codes')) {
+        this.codes = uni.getStorageSync('codes')
+      }
       this.loadData()
+      setInterval(() => {
+        this.loadData()
+      },10000)
     },
     name: "index",
     data() {
       return {
-        codes: [{
-          code: '003634',
-          price: '1.8642',
-          total: '2413.92'
-        },{
-          code: '004857',
-          price: '1.3737',
-          total: '8219.46'
-        },{
-          code: '004433',
-          price: '0.8070',
-          total: '7435.04'
-        }],
+        codes: [],
         lists:[],
         host: 'https://bird.ioliu.cn/v1/?url=http://fund.52sar.cn/getData?codes=000717',
         show: false,
@@ -136,9 +130,9 @@
             if (this.current_column && this.sort[this.current_column]) {
 
               if (this.sort[this.current_column] === 'up') {
-                temp.sort((a, b) => b[current_column] - a[current_column])
+                temp.sort((a, b) => b[this.current_column] - a[this.current_column])
               } else if (this.sort[this.current_column] === 'down') {
-                temp.sort((a, b) => a[current_column] - b[current_column])
+                temp.sort((a, b) => a[this.current_column] - b[this.current_column])
               }
             }
             this.lists = temp
@@ -214,6 +208,7 @@
       },
       confirmDel() {
         this.codes = this.codes.filter(v=>this.codes_checked.indexOf(v.code) === -1)
+        this.lists = this.lists.filter(v => this.codes_checked.indexOf(v.code) === -1)
         this.loadData()
         uni.setStorageSync('codes', this.codes)
       },
@@ -224,6 +219,11 @@
           this.sort[column] = ''
         } else {
           this.sort[column] = 'up'
+        }
+        if (column === 'gszzl') {
+          this.sort['amount'] = ''
+        } else {
+          this.sort['gszzl'] = ''
         }
 
         this.current_column = column
@@ -272,9 +272,33 @@
         this.show = true
       },
       confirmBatch() {
+        let codes = []
+        let codes2 = []
         this.batch.split('\n').forEach(v => {
-          let code = ''
-          code = v.split(':')
+          let temp = []
+          temp = v.split(':')
+          if (this.codes.indexOf(temp[0] === -1)) {
+            codes2.push(temp[0])
+            codes.push({
+              code: temp[0],
+              price: temp[1],
+              total: temp[2]
+            })
+          }
+        })
+        let code_str = codes2.join('_')
+        uni.request({
+          url: 'https://bird.ioliu.cn/v1/?url=http://fund.52sar.cn/getData?codes=' + code_str,
+          success: (res) => {
+            let codes3 = res.data.Data.KFS.map(v => v.FCODE)
+            codes = codes.filter(v=>codes3.indexOf(v.code) !== -1)
+            this.codes.push(...codes)
+            uni.setStorageSync('codes', this.codes)
+            this.loadData()
+          },
+          fail: (e) => {
+            console.log(e)
+          }
         })
       }
     },
