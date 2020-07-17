@@ -164,7 +164,9 @@
         }
       },
       addSure() {
-        let idx = this.codes.indexOf(this.form.code)
+        console.log(this.form)
+        let idx = this.codes.findIndex(v => v.code === this.form.code)
+        console.log(idx)
         if (idx === -1) {
           this.codes.push({
             code: this.form.code,
@@ -210,6 +212,7 @@
         this.codes = this.codes.filter(v=>this.codes_checked.indexOf(v.code) === -1)
         this.lists = this.lists.filter(v => this.codes_checked.indexOf(v.code) === -1)
         this.loadData()
+        this.codes_checked = []
         uni.setStorageSync('codes', this.codes)
       },
       handleSort(column) {
