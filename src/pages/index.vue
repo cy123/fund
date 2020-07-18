@@ -13,28 +13,54 @@
       <view class="item" @click="handleDel">删除持仓</view>
     </view>
     <view class="content">
-      <view class="column">
+      <view class="left">
         <view class="name">基金名称</view>
-        <view class="rate" @click="handleSort('gszzl')">
-          <view class="title">涨跌</view>
-          <view class="icon">
-            <u-icon name="arrow-upward" :color="sort['gszzl']==='up' ? 'red' : ''"  size="28"></u-icon>
-            <u-icon name="arrow-downward" :color="sort['gszzl']==='down' ? 'red' : ''"  size="28"></u-icon>
-          </view>
-        </view>
-        <view class="amount" @click="handleSort('amount')">
-          <view class="title">收益</view>
-          <view class="icon">
-            <u-icon name="arrow-upward" :color="sort['amount']==='up' ? 'red' : ''"  size="28"></u-icon>
-            <u-icon name="arrow-downward" :color="sort['amount']==='down' ? 'red' : ''"  size="28"></u-icon>
-          </view>
-        </view>
+        <view class="title" v-for="(item, idx) of lists" :key="idx" @click="handleCheck(item)" :class="{'name--checked': codes_checked.indexOf(item.code) !== -1}">{{item.title}}</view>
       </view>
-      <view class="funds">
-        <view class="item" v-for="(item, idx) of lists" :key="idx" @click="handleCheck(item)">
-          <view class="name" :class="{'name--checked': codes_checked.indexOf(item.code) !== -1}">{{item.title}}</view>
-          <view class="rate" :style="{color: item.amount > 0 ? 'red' : 'green'}">{{item.gszzl}}%</view>
-          <view class="amount" :style="{color: item.amount > 0 ? 'red' : 'green'}">{{item.amount}}</view>
+      <view class="right">
+        <view class="column">
+          <view class="rate" @click="handleSort('gszzl')">
+            <view class="title">涨跌</view>
+            <view class="icon">
+              <u-icon name="arrow-upward" :color="sort['gszzl']==='up' ? 'red' : ''"  size="28"></u-icon>
+              <u-icon name="arrow-downward" :color="sort['gszzl']==='down' ? 'red' : ''"  size="28"></u-icon>
+            </view>
+          </view>
+          <view class="amount" @click="handleSort('amount')">
+            <view class="title">收益</view>
+            <view class="icon">
+              <u-icon name="arrow-upward" :color="sort['amount']==='up' ? 'red' : ''"  size="28"></u-icon>
+              <u-icon name="arrow-downward" :color="sort['amount']==='down' ? 'red' : ''"  size="28"></u-icon>
+            </view>
+          </view>
+          <view class="amount" @click="handleSort('total_rate')">
+            <view class="title">共涨</view>
+            <view class="icon">
+              <u-icon name="arrow-upward" :color="sort['total_rate']==='up' ? 'red' : ''"  size="28"></u-icon>
+              <u-icon name="arrow-downward" :color="sort['total_rate']==='down' ? 'red' : ''"  size="28"></u-icon>
+            </view>
+          </view>
+          <view class="amount" @click="handleSort('total_amount')">
+          <view class="title">共计</view>
+          <view class="icon">
+            <u-icon name="arrow-upward" :color="sort['total_amount']==='up' ? 'red' : ''"  size="28"></u-icon>
+            <u-icon name="arrow-downward" :color="sort['total_amount']==='down' ? 'red' : ''"  size="28"></u-icon>
+          </view>
+        </view>
+          <view class="amount" @click="handleSort('principal')">
+            <view class="title">本金</view>
+            <view class="icon">
+              <u-icon name="arrow-upward" :color="sort['principal']==='up' ? 'red' : ''"  size="28"></u-icon>
+              <u-icon name="arrow-downward" :color="sort['principal']==='down' ? 'red' : ''"  size="28"></u-icon>
+            </view>
+          </view>
+        </view>
+        <view class="item-wrapper" v-for="(item, idx) of lists" :key="idx" @click="handleCheck(item)">
+          <view class="item" :style="{color: item.amount > 0 ? 'red' : 'green'}">{{item.gszzl}}%</view>
+          <view class="item" :style="{color: item.amount > 0 ? 'red' : 'green'}">{{item.amount}}</view>
+          <view class="item" :style="{color: item.total_rate > 0 ? 'red' : 'green'}">{{item.total_rate}}%</view>
+          <view class="item" :style="{color: item.total_amount > 0 ? 'red' : 'green'}">{{item.total_amount}}</view>
+          <view class="item" :style="{color: item.principal > 0 ? 'red' : 'green'}">{{item.principal}}</view>
         </view>
       </view>
     </view>
@@ -120,11 +146,16 @@
             //console.log(res)
             let temp = res.data.Data.KFS.map(v => {
               let code = this.codes.find(v2 => v2.code === v.FCODE)
+              let total_rate =  NP.round((v.DWJZ-code.price) / code.price * 100,2)
+              let total_amount = NP.round((v.DWJZ-code.price) * code.total, 2)
               return {
                 code: v.FCODE,
                 title: v.SHORTNAME,
                 gszzl: v.gszzl,
                 amount: NP.round(NP.times(NP.times(v.DWJZ, v.gszzl)/100, code.total), 2),
+                total_rate: total_rate,
+                total_amount: total_amount,
+                principal: NP.round(NP.times(code.price, code.total),0)
               }
             })
             if (this.current_column && this.sort[this.current_column]) {
@@ -223,11 +254,13 @@
         } else {
           this.sort[column] = 'up'
         }
-        if (column === 'gszzl') {
-          this.sort['amount'] = ''
-        } else {
-          this.sort['gszzl'] = ''
-        }
+
+        // 重置
+        Object.keys(this.sort).forEach(v => {
+          if (v !== column) {
+            this.sort[v] = ''
+          }
+        })
 
         this.current_column = column
         this.sortColumn(column, this.sort[column])
@@ -357,7 +390,6 @@
     display: flex;
     height: 80rpx;
     align-items: center;
-    border-bottom: 1rpx solid #F8F8F8;
     .name {
       flex: 1;
       margin-left: 32rpx;
@@ -376,33 +408,6 @@
     }
     .icon {
       display: flex;
-    }
-  }
-  .funds {
-    .item {
-      display: flex;
-      padding: 30rpx 0;
-      align-items: center;
-      border-bottom: 1rpx solid #F8F8F8;
-      .name {
-        flex: 1;
-        padding-left: 32rpx;
-        position: relative;
-      }
-      .name--checked::after {
-        content: '';
-        position: absolute;
-        left: 12rpx;
-        top: 50%;
-        width: 10rpx;
-        height: 10rpx;
-        border-radius: 5rpx;
-        background: #515151;
-      }
-      .rate,.amount {
-        width: 180rpx;
-        text-align: center;
-      }
     }
   }
 }
@@ -438,8 +443,55 @@
     border-bottom: 0;
   }
 }
-
 .batch {
   padding: 20rpx;
+}
+.content {
+  display: flex;
+  .left {
+    flex: 1;
+    .name {
+      height: 80rpx;
+      display: flex;
+      align-items: center;
+      padding-left: 32rpx;
+      border-bottom: 1rpx solid #F8F8F8;
+    }
+    .title {
+      height: 100rpx;
+      display: flex;
+      align-items: center;
+      padding-left: 32rpx;
+      border-bottom: 1rpx solid #F8F8F8;
+    }
+  }
+  .right {
+    width: 360rpx;
+    overflow: scroll;
+    .column {
+      display: flex;
+      height: 80rpx;
+      align-items: center;
+      .rate,.amount {
+        width: 180rpx;
+        height: 100%;
+        flex-shrink: 0;
+        border-bottom: 1rpx solid #F8F8F8;
+      }
+    }
+    .item-wrapper {
+      display: flex;
+      .item {
+        flex-shrink: 0;
+        width: 180rpx;
+        text-align: center;
+        height: 100rpx;
+        display: flex;
+        align-items: center;
+        padding-left: 32rpx;
+        border-bottom: 1rpx solid #F8F8F8;
+      }
+    }
+  }
 }
 </style>
