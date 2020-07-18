@@ -60,7 +60,7 @@
           <view class="item" :style="{color: item.amount > 0 ? 'red' : 'green'}">{{item.amount}}</view>
           <view class="item" :style="{color: item.total_rate > 0 ? 'red' : 'green'}">{{item.total_rate}}%</view>
           <view class="item" :style="{color: item.total_amount > 0 ? 'red' : 'green'}">{{item.total_amount}}</view>
-          <view class="item" :style="{color: item.principal > 0 ? 'red' : 'green'}">{{item.principal}}</view>
+          <view class="item">{{item.principal}}</view>
         </view>
       </view>
     </view>
@@ -103,12 +103,15 @@
   import NP from 'number-precision'
   NP.enableBoundaryChecking(false)
   export default {
-    onLoad() {
+    onLoad(options) {
       if (uni.getStorageSync('codes')) {
         this.codes = uni.getStorageSync('codes')
       }
       this.loadData()
-      setInterval(() => {
+      if (this.timer) {
+        clearInterval(this.timer)
+      }
+      this.timer = setInterval(() => {
         this.loadData()
       },10000)
     },
@@ -132,7 +135,8 @@
         },
         current_column: '',
         is_add: false,
-        batch: ''
+        batch: '',
+        timer: ''
       }
     },
     methods: {
@@ -211,6 +215,7 @@
 
         uni.setStorageSync('codes', this.codes)
         this.loadData()
+        this.form = {}
         this.show = false
       },
       addCancel() {
@@ -463,6 +468,17 @@
       align-items: center;
       padding-left: 32rpx;
       border-bottom: 1rpx solid #F8F8F8;
+      position: relative;
+    }
+    .name--checked::after {
+      content: '';
+      position: absolute;
+      left: 12rpx;
+      top: 50%;
+      width: 10rpx;
+      height: 10rpx;
+      border-radius: 5rpx;
+      background: #515151;
     }
   }
   .right {
