@@ -102,6 +102,8 @@
 <script>
   import NP from 'number-precision'
   NP.enableBoundaryChecking(false)
+
+  import $ from 'jquery'
   export default {
     onLoad(options) {
       if (uni.getStorageSync('codes')) {
@@ -121,6 +123,7 @@
         codes: [],
         lists:[],
         host: 'https://bird.ioliu.cn/v1/?url=http://fund.52sar.cn/getData?codes=000717',
+        url: 'https://fundmobapi.eastmoney.com/FundMApi/FundFavorInformation.ashx?fundtype=0&Sort=desc&pageIndex=1&pagesize=30&deviceid=Wap&plat=Wap&product=EFund&version=2.0.0'+'&Fcodes=006408,320007',
         show: false,
         show_batch: false,
         form: {
@@ -145,18 +148,28 @@
           return
         }
         uni.request({
-          url: 'https://bird.ioliu.cn/v1/?url=http://fund.52sar.cn/getData?codes=' + this.code_str,
+          url: 'https://bird.ioliu.cn/v1/?url=https://fundmobapi.eastmoney.com/FundMNewApi/FundMNFInfo',
+          data: {
+            Version: '6.2.8',
+            deviceid: '58ff22b3b502d20bbef5507dbdfa8125||140748540302169',
+            appType: 'ttjj',
+            pageIndex: 1,
+            Fcodes: this.code_str,
+            plat: 'Android',
+            pageSize: this.codes.length,
+            product: 'EFund'
+          },
+          method: 'POST',
           success:(res) => {
-            //console.log(res)
-            let temp = res.data.Data.KFS.map(v => {
+            let temp = res.data.Datas.map(v => {
               let code = this.codes.find(v2 => v2.code === v.FCODE)
-              let total_rate =  NP.round((v.DWJZ-code.price) / code.price * 100,2)
-              let total_amount = NP.round((v.DWJZ-code.price) * code.total, 2)
+              let total_rate =  NP.round((v.NAV - code.price) / code.price * 100,2)
+              let total_amount = NP.round((v.NAV - code.price) * code.total, 2)
               return {
                 code: v.FCODE,
                 title: v.SHORTNAME,
-                gszzl: v.gszzl,
-                amount: NP.round(NP.times(NP.times(v.DWJZ, v.gszzl)/100, code.total), 2),
+                gszzl: v.GSZZL,
+                amount: NP.round(NP.times(NP.times(v.NAV, v.GSZZL)/100, code.total), 2),
                 total_rate: total_rate,
                 total_amount: total_amount,
                 principal: NP.round(NP.times(code.price, code.total),0)
@@ -179,9 +192,10 @@
       },
       loadFund(code) {
         uni.request({
-          url: 'https://bird.ioliu.cn/v1/?url=http://fund.52sar.cn/getData?codes=' + code,
+          url: 'https://bird.ioliu.cn/v1/?url=https://fundmobapi.eastmoney.com/FundMApi/FundFavorInformation.ashx?fundtype=0&Sort=desc&pageIndex=1&pagesize=30&deviceid=Wap&plat=Wap&product=EFund&version=2.0.0&Fcodes=' + code,
           success: (res) => {
-            this.form.title = res.data.Data.KFS[0].SHORTNAME
+            console.log(res)
+            this.form.title = res.data.Datas[0].SHORTNAME
           },
           fail: (e) => {
            this.form.title='获取数据失败'
@@ -327,11 +341,12 @@
             })
           }
         })
-        let code_str = codes2.join('_')
+        let code_str = codes2.join(',')
         uni.request({
-          url: 'https://bird.ioliu.cn/v1/?url=http://fund.52sar.cn/getData?codes=' + code_str,
+          url: 'https://bird.ioliu.cn/v1/?url=https://fundmobapi.eastmoney.com/FundMApi/FundFavorInformation.ashx?fundtype=0&Sort=desc&pageIndex=1&pagesize=30&deviceid=Wap&plat=Wap&product=EFund&version=2.0.0&Fcodes=' + code_str,
           success: (res) => {
-            let codes3 = res.data.Data.KFS.map(v => v.FCODE)
+            console.log(res)
+            let codes3 = res.data.Datas.map(v => v.FCODE)
             codes = codes.filter(v=>codes3.indexOf(v.code) !== -1)
             this.codes.push(...codes)
             uni.setStorageSync('codes', this.codes)
@@ -346,7 +361,7 @@
     computed: {
       code_str() {
         if (this.codes.length > 0) {
-          return this.codes.map(v => v.code).join('_')
+          return this.codes.map(v => v.code).join(',')
         }
         return ''
       },
